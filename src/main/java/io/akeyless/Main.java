@@ -3,7 +3,11 @@ package io.akeyless;
 public class Main {
 
     public static void main(String[] args) {
-        CloudIdProvider provider = CloudProviderFactory.getCloudIdProvider(args[1]);
+        if (args.length < 1) {
+            System.out.println("Please enter provider type");
+            System.exit(1);
+        }
+        CloudIdProvider provider = CloudProviderFactory.getCloudIdProvider(args[0]);
         try {
             String cloudId = provider.getCloudId();
             System.out.println(cloudId);
