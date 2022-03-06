@@ -1,4 +1,4 @@
-package io.akeyless;
+package io.akeyless.cloudid;
 
 import java.util.Objects;
 
