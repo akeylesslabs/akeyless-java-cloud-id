@@ -1,4 +1,4 @@
-package io.akeyless;
+package io.akeyless.cloudid;
 
 import  com.google.auth.oauth2.IdToken;
 import  com.google.auth.oauth2.IdTokenCredentials;
@@ -6,7 +6,6 @@ import  com.google.auth.oauth2.IdTokenProvider;
 import  com.google.auth.oauth2.GoogleCredentials;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 

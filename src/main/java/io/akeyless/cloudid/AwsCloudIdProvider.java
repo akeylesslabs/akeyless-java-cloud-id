@@ -1,4 +1,4 @@
-package io.akeyless;
+package io.akeyless.cloudid;
 
 import com.amazonaws.DefaultRequest;
 import com.amazonaws.auth.AWS4Signer;
