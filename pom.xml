@@ -6,7 +6,29 @@
 
     <groupId>io.akeyless</groupId>
     <artifactId>cloudid</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
+    <packaging>jar</packaging>
+    <name>akeyless-cloud-id</name>
+    <url>https://github.com/akeylesslabs/akeyless-java-cloud-id</url>
+    <description>Akeyless Java Cloud Id</description>
+
+    <licenses>
+        <license>
+            <name>Unlicense</name>
+            <url>http://unlicense.org</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Akeyless</name>
+            <email>support@akeyless.io</email>
+            <organization>Akeyless</organization>
+            <organizationUrl>https://akeyless.io</organizationUrl>
+        </developer>
+    </developers>
+
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -35,5 +57,12 @@
             <version>1.12.169</version>
         </dependency>
    </dependencies>
-    
+
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <name>akeyless-artifactory-primary-0-releases</name>
+            <url>https://akeyless.jfrog.io/artifactory/akeyless-java</url>
+        </repository>
+    </distributionManagement>
 </project>
