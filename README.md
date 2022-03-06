@@ -20,16 +20,6 @@ Using the cloudid provider requires:
 
 ### Maven users
 
-Add this dependency to your project's POM:
-
-```xml
-<dependency>
-  <groupId>io.akeyless</groupId>
-  <artifactId>cloudid</artifactId>
-  <version>Specify the SDK version here</version>
-</dependency>
-```
-
 Add the following repository definition to your Maven settings file (default
 `~/.m2/settings.xml`) or your POM file:
 
@@ -39,6 +29,24 @@ Add the following repository definition to your Maven settings file (default
     <url>https://akeyless.jfrog.io/artifactory/akeyless-java</url>
     <snapshots><enabled>false</enabled></snapshots>
 </repository>
+```
+
+Add this dependency to your project's POM:
+
+```xml
+<dependency>
+  <groupId>io.akeyless</groupId>
+  <artifactId>cloudid</artifactId>
+  <version>Specify the CloudId package version here</version>
+</dependency>
+```
+To use akeyless java sdk, you should also add:
+```xml
+ <dependency>
+    <groupId>io.akeyless</groupId>
+    <artifactId>akeyless-java</artifactId>
+    <version>Specify the SDK version here</version>
+</dependency>
 ```
  
 ## Getting Started
