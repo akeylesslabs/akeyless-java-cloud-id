@@ -20,4 +20,4 @@ jobs:
       - run: |
            mkdir ${{github.ref_name}}
            cp target/*.jar ${{github.ref_name}}/.
-           jfrog rt u "${{github.ref_name}}/*.jar" akeyless-java/io/akeyless/cloudid/${{github.ref_name}}/akeyless-cloudid.jar  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
+           jfrog rt u "${{github.ref_name}}/*.jar" akeyless-java/io/akeyless/cloudid/${{github.ref_name}}/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
