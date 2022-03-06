@@ -17,7 +17,7 @@ jobs:
         run: mvn --batch-mode --update-snapshots verify
       - uses: jfrog/setup-jfrog-cli@v1
         env:
-          JF_ARTIFACTORY_1: ${{ secrets.artifactory_token_1 }}
+          JF_ARTIFACTORY_1: ${{ secrets.ARTIFACTORY_ACCESS_KEY }}
       - run: |
            # Ping the server
            jfrog rt ping
