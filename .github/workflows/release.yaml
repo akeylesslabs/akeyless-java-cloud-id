@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
 
       - uses: actions/checkout@v2
       - name: Set up JDK 8
@@ -21,5 +21,7 @@ jobs:
         run: mvn --batch-mode --update-snapshots verify
       - uses: jfrog/setup-jfrog-cli@v1
       - run: |
-           cd target 
-           jfrog rt u cloudid-*.jar akeyless-java-cloudid/io/akeyless/cloudid/${{ steps.get_version.outputs.VERSION }}  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
+           mkdir staging
+           mkdir staging/${{github.ref_name}}
+           cp target/*.jar staging/${{github.ref_name}}/.
+           jfrog rt u "staging/*.jar" akeyless-java-cloudid/io/akeyless/cloudid/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
