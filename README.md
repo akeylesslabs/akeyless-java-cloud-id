@@ -1,4 +1,4 @@
-# akeyless-java
+# akeyless-java-cloud-id
 
 Akeyless CloudId Provider
 
