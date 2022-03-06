@@ -6,7 +6,7 @@
 
     <groupId>io.akeyless</groupId>
     <artifactId>cloudid</artifactId>
-    <version>${env.VER}</version>
+    <version>${revision}</version>
     <packaging>jar</packaging>
     <name>akeyless-cloud-id</name>
     <url>https://github.com/akeylesslabs/akeyless-java-cloud-id</url>
@@ -83,6 +83,7 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
+                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
             </plugin>
         </plugins>

@@ -15,11 +15,9 @@ jobs:
           java-version: '8'
           distribution: 'adopt'
       - name: Build with Maven
-        env:
-          VER: ${{github.ref_name}}
-        run: mvn --batch-mode --update-snapshots verify
+        run: mvn -Drevision=${{github.ref_name}}  --batch-mode --update-snapshots verify
       - uses: jfrog/setup-jfrog-cli@v1
       - run: |
            mkdir ${{github.ref_name}}
            cp target/*.jar ${{github.ref_name}}/.
-           jfrog rt u "${{github.ref_name}}/*-jar-with-dependencies.jar" akeyless-java/io/akeyless/cloudid/${{github.ref_name}}/akeyless-cloudid-${{github.ref_name}}.jar  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
+           jfrog rt u "${{github.ref_name}}/*.jar" akeyless-java/io/akeyless/cloudid/${{github.ref_name}}/akeyless-cloudid-${{github.ref_name}}.jar  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
