@@ -6,7 +6,7 @@
 
     <groupId>io.akeyless</groupId>
     <artifactId>cloudid</artifactId>
-    <version>v0.1.6</version>
+    <version>v0.1.7</version>
     <packaging>jar</packaging>
     <name>akeyless-cloud-id</name>
     <url>https://github.com/akeylesslabs/akeyless-java-cloud-id</url>
