@@ -22,7 +22,6 @@ jobs:
         run: mvn --batch-mode --update-snapshots verify
       - uses: jfrog/setup-jfrog-cli@v1
       - run: |
-           mkdir staging
-           mkdir staging/${{github.ref_name}}
-           cp target/*.jar staging/${{github.ref_name}}/.
-           jfrog rt u "staging/*.jar" akeyless-java/io/akeyless/cloudid/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
+           mkdir ${{github.ref_name}}
+           cp target/*.jar ${{github.ref_name}}/.
+           jfrog rt u "${{github.ref_name}}/*.jar" akeyless-java/io/akeyless/cloudid/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
