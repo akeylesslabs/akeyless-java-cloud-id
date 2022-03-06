@@ -19,5 +19,4 @@ jobs:
         env:
           JF_ARTIFACTORY_1: ${{ secrets.ARTIFACTORY_ACCESS_KEY }}
       - run: |
-           # Ping the server
-           jfrog rt ping
+           jfrog rt ping --url=https://akeyless.jfrog.io/artifactory/akeyless-java --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
