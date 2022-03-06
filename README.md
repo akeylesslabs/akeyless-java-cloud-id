@@ -6,6 +6,9 @@ The purpose of this package is to exteact the required "cloudid" to authenticate
 
 For more information, please visit [http://akeyless.io](http://akeyless.io)
 
+## Publishing a new version
+Tag the commit with a new tag and push to the repository.
+The workflow will build and publish a new version to the artifactory repository.
 
 ## Requirements
 
