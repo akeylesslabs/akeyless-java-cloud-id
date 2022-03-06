@@ -17,4 +17,4 @@ jobs:
         run: mvn --batch-mode --update-snapshots verify
       - uses: jfrog/setup-jfrog-cli@v1
       - run: |
-           jfrog rt u target/cloudid-*.jar akeyless-java/io/akeyless/cloudid/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
+           jfrog rt u target/cloudid-*.jar akeyless-java-cloudid/io/akeyless/cloudid/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
