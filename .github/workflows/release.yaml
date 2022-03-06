@@ -17,4 +17,4 @@ jobs:
         run: mvn --batch-mode --update-snapshots verify
       - uses: jfrog/setup-jfrog-cli@v1
       - run: |
-           jfrog rt ping --url=https://akeyless.jfrog.io/artifactory/akeyless-java --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
+           jfrog rt ping --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
