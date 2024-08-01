@@ -1,0 +1,17 @@
+name: PR Check
+
+on: [pull_request]
+
+jobs:
+  Scanning_with:
+    uses: akeylesslabs/akeyless-security/.github/workflows/reusable-scanner.yaml@main
+    strategy:
+      fail-fast: false
+      matrix:
+        scan_type: ["SAST", "SCA"]
+    with:
+      branch_name: ${{ github.head_ref }}
+      repository_name: ${{ github.repository }}
+      event_name: ${{ github.event_name }}
+      scan_type: ${{ matrix.scan_type }}
+    secrets: inherit
