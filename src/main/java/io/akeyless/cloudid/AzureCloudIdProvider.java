@@ -6,7 +6,6 @@ import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenRequestContext;
 
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
 
 import java.util.Base64;
 
@@ -28,7 +27,7 @@ public class AzureCloudIdProvider implements CloudIdProvider {
 
             return Base64.getEncoder().encodeToString(token.getToken().getBytes());
         } catch (Exception e) {
-            throw new Exception("Error finind access token in reponse");
+            throw new Exception("Error finding access token in reponse");
         }
     }
 }
