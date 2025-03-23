@@ -19,8 +19,9 @@ jobs:
       - name: Build with Maven
         run: mvn -Drevision=${{github.ref_name}}  --batch-mode --update-snapshots verify
 
-      - uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df
-      - run: |
+      - name: Setup JFrog CLI and upload artifacts
+        uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df
+        run: |
            mkdir ${{github.ref_name}}
            cp target/*.jar ${{github.ref_name}}/.
            jfrog rt u "${{github.ref_name}}/*.jar" akeyless-java/io/akeyless/cloudid/${{github.ref_name}}/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
