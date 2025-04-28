@@ -6,20 +6,27 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
       - name: Set up JDK 8
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@3a4f6e1af504cf6a31855fa899c6aa5355ba6c12
         with:
           java-version: '8'
           distribution: 'adopt'
+
       - name: Build with Maven
         run: mvn -Drevision=${{github.ref_name}}  --batch-mode --update-snapshots verify
-      - uses: jfrog/setup-jfrog-cli@v1
-      - run: |
+
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@f748a0599171a192a2668afee8d0497f7c1069df
+
+      - name: Upload artifacts to JFrog
+        run: |
            mkdir ${{github.ref_name}}
            cp target/*.jar ${{github.ref_name}}/.
-           jfrog rt u "${{github.ref_name}}/*.jar" akeyless-java/io/akeyless/cloudid/${{github.ref_name}}/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
+           jfrog rt u "${{github.ref_name}}/*.jar" akeyless-java/io/akeyless/cloudid/ --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
            sed "s/\${revision}/${{github.ref_name}}/g" pom.xml >> target/cloudid-${{github.ref_name}}.pom
-           jfrog rt u "${{github.ref_name}}/*.pom" akeyless-java/io/akeyless/cloudid/${{github.ref_name}}/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
+           cp target/*.pom ${{github.ref_name}}/.
+           jfrog rt u "${{github.ref_name}}/*.pom" akeyless-java/io/akeyless/cloudid/  --url=https://akeyless.jfrog.io/artifactory --user=ci-user --password=${{ secrets.ARTIFACTORY_ACCESS_KEY }}
