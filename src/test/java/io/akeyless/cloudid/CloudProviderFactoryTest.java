@@ -39,8 +39,8 @@ public class CloudProviderFactoryTest {
     }
 
     @Test
-    public void mapsAliCloudToAlibabaProvider() {
-        CloudIdProvider provider = CloudProviderFactory.getCloudIdProvider("ali_cloud");
+    public void mapsAlicloudToAlibabaProvider() {
+        CloudIdProvider provider = CloudProviderFactory.getCloudIdProvider("alicloud");
         assertNotNull(provider);
         assertTrue("expected an AlibabaCloudIdProvider", provider instanceof AlibabaCloudIdProvider);
     }

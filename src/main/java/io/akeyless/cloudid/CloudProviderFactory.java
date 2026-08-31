@@ -10,7 +10,7 @@ public class CloudProviderFactory {
             return new AzureCloudIdProvider();
         } else if (Objects.equals(accType, "gcp")) {
             return new GcpCloudIdProvider();
-        } else if (Objects.equals(accType, "ali_cloud")) {
+        } else if (Objects.equals(accType, "alicloud")) {
             return new AlibabaCloudIdProvider();
         }
 
