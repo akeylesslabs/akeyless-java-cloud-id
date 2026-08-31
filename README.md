@@ -65,7 +65,7 @@ import io.akeyless.client.api.V2Api;
 
 public class Main {
     public static void main(String[] argv) {
-        // Use azure_ad/aws_iam/gcp, according to your cloud provider
+        // Use azure_ad/aws_iam/gcp/ali_cloud, according to your cloud provider
         String accessType = "azure_ad";
         CloudIdProvider idProvider = CloudProviderFactory.getCloudIdProvider(accessType);
         try {
