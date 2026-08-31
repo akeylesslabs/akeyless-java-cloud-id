@@ -2,19 +2,26 @@ package io.akeyless.cloudid;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpServer;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class AlibabaCloudIdProviderTest {
     private static final String TEST_TIMESTAMP = "2026-05-11T10:00:00Z";
@@ -76,10 +83,147 @@ public class AlibabaCloudIdProviderTest {
         assertEquals("dSCqL2sSKYDmcOcAj2Grhpar/wE=", signature);
     }
 
+    @Test
+    public void ecsCredentialsUseImdsV2Token() throws Exception {
+        AtomicInteger tokenPuts = new AtomicInteger();
+        AtomicInteger unauthenticatedGets = new AtomicInteger();
+        HttpServer server = startMetadataServer(tokenPuts, unauthenticatedGets, true, "my-role");
+        try {
+            AlibabaCloudIdProvider.AlibabaCredentials creds =
+                    AlibabaCloudIdProvider.resolveEcsRamRoleCredentials(baseUrl(server), false);
+            assertEquals("AKI", creds.accessKeyId);
+            assertEquals("SECRET", creds.accessKeySecret);
+            assertEquals("TOK", creds.securityToken);
+            assertEquals(1, tokenPuts.get());
+            assertEquals(0, unauthenticatedGets.get());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void ecsCredentialsFallBackToImdsV1WhenTokenUnavailable() throws Exception {
+        AtomicInteger tokenPuts = new AtomicInteger();
+        AtomicInteger unauthenticatedGets = new AtomicInteger();
+        HttpServer server = startMetadataServer(tokenPuts, unauthenticatedGets, false, "my-role");
+        try {
+            AlibabaCloudIdProvider.AlibabaCredentials creds =
+                    AlibabaCloudIdProvider.resolveEcsRamRoleCredentials(baseUrl(server), false);
+            assertEquals("AKI", creds.accessKeyId);
+            assertEquals(1, tokenPuts.get());
+            assertTrue(unauthenticatedGets.get() >= 2);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void ecsCredentialsDoNotFallBackWhenImdsV1Disabled() throws Exception {
+        AtomicInteger tokenPuts = new AtomicInteger();
+        AtomicInteger unauthenticatedGets = new AtomicInteger();
+        HttpServer server = startMetadataServer(tokenPuts, unauthenticatedGets, false, "my-role");
+        try {
+            AlibabaCloudIdProvider.resolveEcsRamRoleCredentials(baseUrl(server), true);
+            fail("expected IMDSv2-required failure");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("IMDSv2"));
+            assertEquals(1, tokenPuts.get());
+            assertEquals(0, unauthenticatedGets.get());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void ecsCredentialsRejectUnsafeRoleName() throws Exception {
+        AtomicInteger tokenPuts = new AtomicInteger();
+        AtomicInteger unauthenticatedGets = new AtomicInteger();
+        HttpServer server = startMetadataServer(tokenPuts, unauthenticatedGets, true, "../evil");
+        try {
+            AlibabaCloudIdProvider.resolveEcsRamRoleCredentials(baseUrl(server), false);
+            fail("expected invalid role name");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("role name"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void ramRoleNameAllowsAliyunCharsetAndRejectsTraversal() {
+        assertTrue(AlibabaCloudIdProvider.isSafeRamRoleName("AliyunECSDefaultRole"));
+        assertTrue(AlibabaCloudIdProvider.isSafeRamRoleName("my-role_1"));
+        assertFalse(AlibabaCloudIdProvider.isSafeRamRoleName("../secret"));
+        assertFalse(AlibabaCloudIdProvider.isSafeRamRoleName("role/name"));
+        assertFalse(AlibabaCloudIdProvider.isSafeRamRoleName(""));
+        assertEquals("my-role", AlibabaCloudIdProvider.firstLine("my-role\nother"));
+    }
+
     private static String signedCloudId(String region, String securityToken) throws Exception {
         AlibabaCloudIdProvider.AlibabaCredentials creds =
                 new AlibabaCloudIdProvider.AlibabaCredentials("AKID", "SECRET", securityToken);
         return new AlibabaCloudIdProvider().getCloudId(creds, region, TEST_TIMESTAMP, TEST_NONCE);
+    }
+
+    private static String baseUrl(HttpServer server) {
+        return "http://127.0.0.1:" + server.getAddress().getPort();
+    }
+
+    private static HttpServer startMetadataServer(AtomicInteger tokenPuts, AtomicInteger unauthenticatedGets,
+                                                 boolean issueToken, String roleName) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext(AlibabaCloudIdProvider.ECS_IMDS_TOKEN_PATH, exchange -> {
+            tokenPuts.incrementAndGet();
+            if (!issueToken) {
+                send(exchange, 404, "");
+                return;
+            }
+            if (!"PUT".equals(exchange.getRequestMethod())) {
+                send(exchange, 405, "");
+                return;
+            }
+            String ttl = exchange.getRequestHeaders().getFirst(AlibabaCloudIdProvider.ECS_METADATA_TOKEN_TTL_HEADER);
+            if (ttl == null || ttl.isEmpty()) {
+                send(exchange, 400, "");
+                return;
+            }
+            send(exchange, 200, "imds-token");
+        });
+        server.createContext("/latest/meta-data/ram/security-credentials", exchange -> {
+            String token = exchange.getRequestHeaders().getFirst(AlibabaCloudIdProvider.ECS_METADATA_TOKEN_HEADER);
+            if (token == null) {
+                unauthenticatedGets.incrementAndGet();
+                if (issueToken) {
+                    send(exchange, 403, "");
+                    return;
+                }
+            } else if (!"imds-token".equals(token)) {
+                send(exchange, 401, "");
+                return;
+            }
+            String path = exchange.getRequestURI().getPath();
+            if (path.equals(AlibabaCloudIdProvider.ECS_RAM_CREDENTIALS_PATH)
+                    || path.equals("/latest/meta-data/ram/security-credentials")) {
+                send(exchange, 200, roleName);
+                return;
+            }
+            if (path.equals(AlibabaCloudIdProvider.ECS_RAM_CREDENTIALS_PATH + roleName)) {
+                send(exchange, 200,
+                        "{\"AccessKeyId\":\"AKI\",\"AccessKeySecret\":\"SECRET\",\"SecurityToken\":\"TOK\"}");
+                return;
+            }
+            send(exchange, 404, "");
+        });
+        server.start();
+        return server;
+    }
+
+    private static void send(HttpExchange exchange, int status, String body) throws IOException {
+        byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+        exchange.sendResponseHeaders(status, bytes.length);
+        try (OutputStream out = exchange.getResponseBody()) {
+            out.write(bytes);
+        }
     }
 
     private static Map<String, String> query(String url) throws Exception {
