@@ -159,6 +159,68 @@ public class AlibabaCloudIdProviderTest {
         assertEquals("my-role", AlibabaCloudIdProvider.firstLine("my-role\nother"));
     }
 
+    @Test
+    public void percentEncodeFollowsAlibabaRpcRules() throws Exception {
+        assertEquals("a%20b", AlibabaCloudIdProvider.percentEncode("a b"));
+        assertEquals("%2A", AlibabaCloudIdProvider.percentEncode("*"));
+        assertEquals("~", AlibabaCloudIdProvider.percentEncode("~"));
+    }
+
+    @Test
+    public void readFullyPreservesNewlinesAndRejectsTruncation() throws Exception {
+        byte[] body = "my-role\nignored-role".getBytes(StandardCharsets.UTF_8);
+        assertEquals("my-role\nignored-role",
+                AlibabaCloudIdProvider.readFully(new java.io.ByteArrayInputStream(body), -1));
+        assertEquals("my-role",
+                AlibabaCloudIdProvider.firstLine(
+                        AlibabaCloudIdProvider.readFully(new java.io.ByteArrayInputStream(body), -1)));
+        try {
+            AlibabaCloudIdProvider.readFully(new java.io.ByteArrayInputStream(body), body.length + 10);
+            fail("expected truncated metadata body to fail");
+        } catch (IllegalStateException expected) {
+            assertTrue(expected.getMessage().contains("unexpectedly"));
+        }
+    }
+
+    @Test
+    public void ecsCredentialsUseFirstRoleWhenMetadataIsMultiline() throws Exception {
+        AtomicInteger tokenPuts = new AtomicInteger();
+        AtomicInteger unauthenticatedGets = new AtomicInteger();
+        HttpServer server = startMetadataServer(tokenPuts, unauthenticatedGets, true, "my-role\nignored-role");
+        try {
+            AlibabaCloudIdProvider.AlibabaCredentials creds =
+                    AlibabaCloudIdProvider.resolveEcsRamRoleCredentials(baseUrl(server), false);
+            assertEquals("AKI", creds.accessKeyId);
+            assertEquals("TOK", creds.securityToken);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void ecsCredentialsFailWhenMetadataResponseClosesEarly() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext(AlibabaCloudIdProvider.ECS_IMDS_TOKEN_PATH, exchange -> {
+            send(exchange, 200, "imds-token");
+        });
+        server.createContext("/latest/meta-data/ram/security-credentials", exchange -> {
+            byte[] partial = "my-role".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, 64);
+            try (OutputStream out = exchange.getResponseBody()) {
+                out.write(partial);
+            }
+        });
+        server.start();
+        try {
+            AlibabaCloudIdProvider.resolveEcsRamRoleCredentials(baseUrl(server), false);
+            fail("expected incomplete metadata response to fail");
+        } catch (Exception expected) {
+            assertTrue(expected.getMessage() != null && expected.getMessage().contains("unexpectedly"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private static String signedCloudId(String region, String securityToken) throws Exception {
         AlibabaCloudIdProvider.AlibabaCredentials creds =
                 new AlibabaCloudIdProvider.AlibabaCredentials("AKID", "SECRET", securityToken);
@@ -202,12 +264,13 @@ public class AlibabaCloudIdProviderTest {
                 return;
             }
             String path = exchange.getRequestURI().getPath();
+            String firstRole = AlibabaCloudIdProvider.firstLine(roleName);
             if (path.equals(AlibabaCloudIdProvider.ECS_RAM_CREDENTIALS_PATH)
                     || path.equals("/latest/meta-data/ram/security-credentials")) {
                 send(exchange, 200, roleName);
                 return;
             }
-            if (path.equals(AlibabaCloudIdProvider.ECS_RAM_CREDENTIALS_PATH + roleName)) {
+            if (path.equals(AlibabaCloudIdProvider.ECS_RAM_CREDENTIALS_PATH + firstRole)) {
                 send(exchange, 200,
                         "{\"AccessKeyId\":\"AKI\",\"AccessKeySecret\":\"SECRET\",\"SecurityToken\":\"TOK\"}");
                 return;

@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -36,6 +36,7 @@ public class AlibabaCloudIdProvider implements CloudIdProvider {
     static final String ECS_IMDS_TOKEN_PATH = "/latest/api/token";
     static final String ECS_RAM_CREDENTIALS_PATH = "/latest/meta-data/ram/security-credentials/";
     static final String ECS_METADATA_TOKEN_TTL_SECONDS = "60";
+    static final int MAX_METADATA_BODY_BYTES = 64 * 1024;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final DateTimeFormatter TIMESTAMP_FMT =
@@ -96,9 +97,7 @@ public class AlibabaCloudIdProvider implements CloudIdProvider {
     }
 
     static String buildRpcStringToSign(String method, Map<String, String> queryParams) throws Exception {
-        String encoded = encodeQueryParams(queryParams);
-        encoded = encoded.replace("+", "%20").replace("*", "%2A").replace("%7E", "~");
-        return method + "&%2F&" + alibabaQueryEscape(encoded);
+        return method + "&%2F&" + percentEncode(encodeQueryParams(queryParams));
     }
 
     static String encodeQueryParams(Map<String, String> params) throws Exception {
@@ -109,7 +108,7 @@ public class AlibabaCloudIdProvider implements CloudIdProvider {
             if (out.length() > 0) {
                 out.append('&');
             }
-            out.append(alibabaQueryEscape(key)).append('=').append(alibabaQueryEscape(params.get(key)));
+            out.append(percentEncode(key)).append('=').append(percentEncode(params.get(key)));
         }
         return out.toString();
     }
@@ -120,8 +119,11 @@ public class AlibabaCloudIdProvider implements CloudIdProvider {
         return Base64.getEncoder().encodeToString(mac.doFinal(source.getBytes(StandardCharsets.UTF_8)));
     }
 
-    static String alibabaQueryEscape(String value) throws Exception {
-        return URLEncoder.encode(value, "UTF-8").replace("%7E", "~");
+    static String percentEncode(String value) throws Exception {
+        return URLEncoder.encode(value, "UTF-8")
+                .replace("+", "%20")
+                .replace("*", "%2A")
+                .replace("%7E", "~");
     }
 
     static String resolveRegion() {
@@ -259,28 +261,41 @@ public class AlibabaCloudIdProvider implements CloudIdProvider {
             InputStream stream = status >= 200 && status < 300
                     ? conn.getInputStream()
                     : conn.getErrorStream();
-            String body = readFully(stream);
+            String body = readFully(stream, conn.getContentLength());
             if (status < 200 || status >= 300) {
                 throw new IllegalStateException("alibaba metadata request failed: HTTP " + status);
             }
             return body;
+        } catch (IOException e) {
+            throw new IllegalStateException("alibaba metadata response ended unexpectedly", e);
         } finally {
             conn.disconnect();
         }
     }
 
-    private static String readFully(InputStream stream) throws Exception {
+    static String readFully(InputStream stream, int expectedLength) throws Exception {
         if (stream == null) {
             return "";
         }
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
-            StringBuilder sb = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buf = new byte[1024];
+        int total = 0;
+        try (InputStream in = stream) {
+            int n;
+            while ((n = in.read(buf)) != -1) {
+                total += n;
+                if (total > MAX_METADATA_BODY_BYTES) {
+                    throw new IllegalStateException("alibaba metadata response exceeded size limit");
+                }
+                out.write(buf, 0, n);
             }
-            return sb.toString();
+        } catch (IOException e) {
+            throw new IllegalStateException("alibaba metadata response ended unexpectedly", e);
         }
+        if (expectedLength >= 0 && total != expectedLength) {
+            throw new IllegalStateException("alibaba metadata response ended unexpectedly");
+        }
+        return new String(out.toByteArray(), StandardCharsets.UTF_8);
     }
 
     private static String firstEnv(String... keys) {
