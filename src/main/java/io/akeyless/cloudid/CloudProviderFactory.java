@@ -10,6 +10,8 @@ public class CloudProviderFactory {
             return new AzureCloudIdProvider();
         } else if (Objects.equals(accType, "gcp")) {
             return new GcpCloudIdProvider();
+        } else if (Objects.equals(accType, "alicloud")) {
+            return new AlibabaCloudIdProvider();
         }
 
         throw new RuntimeException("Unsupported type: " + accType);
