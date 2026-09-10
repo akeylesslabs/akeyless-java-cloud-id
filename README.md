@@ -2,7 +2,7 @@
 
 Akeyless CloudId Provider
 
-The purpose of this package is to exteact the required "cloudid" to authenticate to akeyless using cloud authorization providers.
+The purpose of this package is to extract the required "cloudid" to authenticate to akeyless using cloud authorization providers.
 
 For more information, please visit [http://akeyless.io](http://akeyless.io)
 
