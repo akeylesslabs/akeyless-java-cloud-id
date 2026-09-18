@@ -19,9 +19,10 @@ import static org.junit.Assume.assumeNotNull;
  *
  * <p>Gating environment variables:
  * <ul>
- *   <li>AWS   - {@code AWS_ACCESS_KEY_ID}</li>
- *   <li>Azure - {@code AZURE_CLIENT_ID}</li>
- *   <li>GCP   - {@code GOOGLE_APPLICATION_CREDENTIALS}</li>
+ *   <li>AWS      - {@code AWS_ACCESS_KEY_ID}</li>
+ *   <li>Azure    - {@code AZURE_CLIENT_ID}</li>
+ *   <li>GCP      - {@code GOOGLE_APPLICATION_CREDENTIALS}</li>
+ *   <li>Alibaba  - {@code ALIBABA_CLOUD_ACCESS_KEY_ID}</li>
  * </ul>
  */
 public class LiveCloudIdE2ETest {
@@ -53,6 +54,13 @@ public class LiveCloudIdE2ETest {
     public void gcpLiveGetCloudId() throws Exception {
         assumeNotNull(System.getenv("GOOGLE_APPLICATION_CREDENTIALS"));
         String cloudId = CloudProviderFactory.getCloudIdProvider("gcp").getCloudId();
+        assertNonEmptyBase64(cloudId);
+    }
+
+    @Test
+    public void alibabaLiveGetCloudId() throws Exception {
+        assumeNotNull(System.getenv("ALIBABA_CLOUD_ACCESS_KEY_ID"));
+        String cloudId = CloudProviderFactory.getCloudIdProvider("alicloud").getCloudId();
         assertNonEmptyBase64(cloudId);
     }
 }
